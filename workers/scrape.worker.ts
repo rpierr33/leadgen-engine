@@ -1,22 +1,18 @@
 import "dotenv/config";
 import { Worker, Job } from "bullmq";
-import IORedis from "ioredis";
 import { PrismaClient } from "@prisma/client";
 import { scrapeUrl } from "../src/lib/scraper";
 import { createExtractor } from "../src/lib/extractor";
 import { enrichLead } from "../src/lib/enrichment";
 
-const prisma = new PrismaClient();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL } as any);
 const redisUrl = process.env.REDIS_URL;
 
 if (!redisUrl) {
   console.error("REDIS_URL is required");
   process.exit(1);
 }
-
-const connection = new IORedis(redisUrl, {
-  maxRetriesPerRequest: null,
-});
 
 interface ScrapeJobData {
   jobId: string;
@@ -78,8 +74,8 @@ async function processJob(job: Job<ScrapeJobData>) {
             : await prisma.lead.findFirst({
                 where: {
                   jobId,
-                  name: { equals: lead.name, mode: "insensitive" },
-                  company: { equals: lead.company, mode: "insensitive" },
+                  name: { equals: lead.name, mode: "insensitive" as const },
+                  company: { equals: lead.company, mode: "insensitive" as const },
                 },
               });
 
@@ -177,12 +173,16 @@ Return JSON: {"score": number, "reason": "brief explanation"}`;
 }
 
 // Start worker
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const worker = new Worker<ScrapeJobData>("scrape", processJob, {
-  connection,
+  connection: {
+    url: redisUrl,
+    maxRetriesPerRequest: null,
+  } as any,
   concurrency: 3,
   limiter: {
     max: 10,
-    duration: 60000, // 10 jobs per minute
+    duration: 60000,
   },
 });
 

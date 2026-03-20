@@ -16,36 +16,36 @@ enum JobStatus {
 }
 
 model Job {
-  id          String    @id @default(uuid())
-  query       String
-  industry    String?
-  status      JobStatus @default(PENDING)
-  totalUrls   Int       @default(0)
-  processedUrls Int     @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  completedAt DateTime?
-  error       String?
-  leads       Lead[]
-  traceLogs   TraceLog[]
+  id            String    @id @default(uuid())
+  query         String
+  industry      String?
+  status        JobStatus @default(PENDING)
+  totalUrls     Int       @default(0)
+  processedUrls Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  completedAt   DateTime?
+  error         String?
+  leads         Lead[]
+  traceLogs     TraceLog[]
 
   @@index([status])
   @@index([createdAt])
 }
 
 model Lead {
-  id         String   @id @default(uuid())
-  name       String
-  role       String?
-  email      String?
-  linkedin   String?
-  company    String
-  sourceUrl  String
-  score      Int?
+  id          String   @id @default(uuid())
+  name        String
+  role        String?
+  email       String?
+  linkedin    String?
+  company     String
+  sourceUrl   String
+  score       Int?
   scoreReason String?
-  jobId      String
-  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  jobId       String
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
 
   @@index([jobId])
   @@index([email])
