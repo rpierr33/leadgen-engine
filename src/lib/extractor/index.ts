@@ -14,21 +14,30 @@ class OpenAIExtractor implements LLMProvider {
   }
 
   async extract(text: string, sourceUrl: string): Promise<ExtractedLead[]> {
-    const prompt = `Extract all professional contacts from this web page content. Return STRICT JSON array.
+    // Derive company name from URL
+    let companyHint = "";
+    try {
+      companyHint = new URL(sourceUrl).hostname.replace("www.", "").split(".")[0];
+      companyHint = companyHint.charAt(0).toUpperCase() + companyHint.slice(1);
+    } catch { /* ignore */ }
 
-Each contact must have:
-- "name": full name (string, required)
-- "role": job title or role (string or null)
-- "email": email address ONLY if it explicitly appears in the text (string or null)
-- "linkedin": LinkedIn profile URL ONLY if it explicitly appears (string or null)
-- "company": company name (string, required)
+    const prompt = `You are extracting PEOPLE from a business web page. Find every person mentioned — staff, team members, founders, doctors, executives, partners, agents, etc.
+
+Return a JSON array. Every person you find MUST be included, even if they only have a name.
+
+Each object:
+- "name": full name WITHOUT credentials (e.g. "Daynet Fraga" not "Daynet Fraga, D.M.D.") (REQUIRED)
+- "role": their job title, position, or credential like "Dentist (D.M.D.)", "CEO", "Founder", "Licensed Agent" (string or null)
+- "email": email ONLY if it explicitly appears in the text (string or null — never guess)
+- "linkedin": LinkedIn URL ONLY if explicitly in the text (string or null)
+- "company": the business name from the page, or "${companyHint}" if unclear (REQUIRED)
 - "source_url": "${sourceUrl}"
 
-Rules:
-- ONLY include emails that EXPLICITLY appear in the content. Never guess or construct emails.
+IMPORTANT:
+- Include ALL people found, even if they have no email or LinkedIn.
+- A person with just a name and role is still a valid lead.
 - If a field is missing, use null.
-- Return an empty array [] if no contacts found.
-- Return ONLY valid JSON, no explanation.
+- Return ONLY valid JSON array, no text before or after.
 
 Content:
 ${text}`;
@@ -83,17 +92,17 @@ class OllamaExtractor implements LLMProvider {
   }
 
   async extract(text: string, sourceUrl: string): Promise<ExtractedLead[]> {
-    const prompt = `Extract all professional contacts from this web page content. Return STRICT JSON array.
+    let companyHint = "";
+    try {
+      companyHint = new URL(sourceUrl).hostname.replace("www.", "").split(".")[0];
+      companyHint = companyHint.charAt(0).toUpperCase() + companyHint.slice(1);
+    } catch { /* ignore */ }
 
-Each contact must have:
-- "name": full name (string, required)
-- "role": job title or role (string or null)
-- "email": email address ONLY if explicitly in the text (string or null)
-- "linkedin": LinkedIn URL ONLY if explicitly in the text (string or null)
-- "company": company name (string, required)
-- "source_url": "${sourceUrl}"
+    const prompt = `Extract every person mentioned on this page — staff, team, founders, doctors, etc. Return JSON array. Include people even if they only have a name.
 
-Return ONLY valid JSON array, no explanation. Empty array [] if no contacts found.
+Each: {"name": string, "role": string|null, "email": string|null (only if in text), "linkedin": string|null (only if in text), "company": "${companyHint}", "source_url": "${sourceUrl}"}
+
+Return ONLY valid JSON array.
 
 Content:
 ${text}`;
