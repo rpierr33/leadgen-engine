@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model Job {
+  id          String    @id @default(uuid())
+  query       String
+  industry    String?
+  status      JobStatus @default(PENDING)
+  totalUrls   Int       @default(0)
+  processedUrls Int     @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+  error       String?
+  leads       Lead[]
+  traceLogs   TraceLog[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Lead {
+  id         String   @id @default(uuid())
+  name       String
+  role       String?
+  email      String?
+  linkedin   String?
+  company    String
+  sourceUrl  String
+  score      Int?
+  scoreReason String?
+  jobId      String
+  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([jobId])
+  @@index([email])
+  @@index([company])
+}
+
+model TraceLog {
+  id               String   @id @default(uuid())
+  jobId            String
+  job              Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  sourceUrl        String
+  timestamp        DateTime @default(now())
+  extractionMethod String
+  robotsRespected  Boolean  @default(true)
+  statusCode       Int?
+  blocked          Boolean  @default(false)
+  error            String?
+
+  @@index([jobId])
+  @@index([sourceUrl])
+}
