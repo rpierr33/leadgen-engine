@@ -2,10 +2,18 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { SearchHero } from "@/components/dashboard/SearchHero";
-import { JobProgress } from "@/components/dashboard/JobProgress";
 import { JobHistory } from "@/components/dashboard/JobHistory";
 import { LeadsTable } from "@/components/dashboard/LeadsTable";
-import { Zap, Database, Cpu, Shield } from "lucide-react";
+import {
+  Zap,
+  Database,
+  Cpu,
+  Mail,
+  Loader2,
+  Download,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 
 interface Lead {
   id: string;
@@ -34,6 +42,14 @@ export default function Home() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [jobs, setJobs] = useState<JobHistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  // Pagination state
+  const [lastQuery, setLastQuery] = useState("");
+  const [lastIndustry, setLastIndustry] = useState<string | undefined>();
+  const [lastLimit, setLastLimit] = useState(10);
+  const [nextOffset, setNextOffset] = useState<number | null>(null);
+  const [totalUrlsFound, setTotalUrlsFound] = useState(0);
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -59,59 +75,93 @@ export default function Home() {
     fetchJobs();
   }, [fetchJobs]);
 
-  const handleSearch = async (query: string, industry?: string) => {
+  const handleSearch = async (
+    query: string,
+    industry?: string,
+    limit?: number,
+    offset?: number
+  ) => {
     setIsLoading(true);
     setError(null);
-    setLeads([]);
+    setStatusMessage("Searching the web...");
+
+    // If not a "load more", clear leads
+    if (!offset) {
+      setLeads([]);
+      setNextOffset(null);
+    }
+
+    setLastQuery(query);
+    setLastIndustry(industry);
+    setLastLimit(limit || 10);
 
     try {
       const res = await fetch("/api/leads/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, industry }),
+        body: JSON.stringify({
+          query,
+          industry,
+          limit: limit || 10,
+          offset: offset || 0,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to start lead generation");
+        throw new Error(data.error || "Failed to generate leads");
       }
 
       setActiveJobId(data.jobId);
+      setTotalUrlsFound(data.totalUrlsFound || 0);
+      setNextOffset(data.nextOffset);
 
-      if (data.status === "COMPLETED") {
-        setIsLoading(false);
-        fetchJobs();
+      if (offset && offset > 0) {
+        // Append new leads
+        setLeads((prev) => [...prev, ...(data.leads || [])]);
+      } else {
+        setLeads(data.leads || []);
       }
+
+      setStatusMessage(null);
+      fetchJobs();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
       setIsLoading(false);
+      setStatusMessage(null);
     }
   };
 
-  const handleJobComplete = useCallback(() => {
-    setIsLoading(false);
-    if (activeJobId) {
-      fetchLeads(activeJobId);
+  const handleLoadMore = () => {
+    if (nextOffset !== null && lastQuery) {
+      handleSearch(lastQuery, lastIndustry, lastLimit, nextOffset);
     }
-    fetchJobs();
-  }, [activeJobId, fetchLeads, fetchJobs]);
-
-  const handleJobCancel = () => {
-    setIsLoading(false);
-    setActiveJobId(null);
-    fetchJobs();
   };
 
   const handleSelectJob = (jobId: string) => {
     setActiveJobId(jobId);
     fetchLeads(jobId);
+    setNextOffset(null);
+  };
+
+  const handleClearLeads = () => {
+    setLeads([]);
+    setActiveJobId(null);
+    setNextOffset(null);
+    setTotalUrlsFound(0);
+  };
+
+  const handleExport = () => {
+    const params = activeJobId ? `?jobId=${activeJobId}` : "";
+    window.open(`/api/leads/export${params}`, "_blank");
   };
 
   return (
     <main className="min-h-screen">
       {/* Navbar */}
-      <header className="sticky top-0 z-50 border-b border-white/[0.04] bg-[oklch(0.14_0.01_270)]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[oklch(0.14_0.01_270)]/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
@@ -122,7 +172,25 @@ export default function Home() {
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {leads.length > 0 && (
+              <>
+                <button
+                  onClick={handleExport}
+                  className="flex items-center gap-2 h-8 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-all"
+                >
+                  <Download className="h-3 w-3" />
+                  Export CSV
+                </button>
+                <button
+                  onClick={handleClearLeads}
+                  className="flex items-center gap-2 h-8 px-3 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/30 text-xs hover:text-red-400 hover:border-red-500/20 transition-all"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Clear
+                </button>
+              </>
+            )}
             <div className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs text-emerald-400 font-medium">Online</span>
@@ -136,6 +204,25 @@ export default function Home() {
         {/* Hero search */}
         <SearchHero onSearch={handleSearch} isLoading={isLoading} />
 
+        {/* Loading state */}
+        {isLoading && (
+          <div className="glass-strong rounded-2xl p-6 animate-slide-up">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 rounded-xl bg-purple-500/10">
+                <Loader2 className="h-5 w-5 text-purple-400 animate-spin" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white">
+                  {statusMessage || "Processing..."}
+                </p>
+                <p className="text-xs text-white/30 mt-0.5">
+                  Scraping pages, extracting contacts with AI, enriching emails...
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Error */}
         {error && (
           <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-5 py-4 text-red-400 text-sm animate-slide-up">
@@ -143,28 +230,42 @@ export default function Home() {
           </div>
         )}
 
-        {/* Active job progress */}
-        {activeJobId && isLoading && (
-          <JobProgress
-            jobId={activeJobId}
-            onComplete={handleJobComplete}
-            onCancel={handleJobCancel}
-          />
-        )}
-
-        {/* Stats bar - show when there are leads */}
+        {/* Stats bar */}
         {leads.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-slide-up">
             {[
-              { label: "Total Leads", value: leads.length, icon: Database, color: "purple" },
-              { label: "With Email", value: leads.filter((l) => l.email).length, icon: Zap, color: "blue" },
-              { label: "With LinkedIn", value: leads.filter((l) => l.linkedin).length, icon: Shield, color: "indigo" },
-              { label: "Avg Score", value: leads.some((l) => l.score) ? Math.round(leads.reduce((acc, l) => acc + (l.score || 0), 0) / leads.filter((l) => l.score).length) : "—", icon: Cpu, color: "emerald" },
+              {
+                label: "Total Leads",
+                value: leads.length,
+                icon: Database,
+              },
+              {
+                label: "With Email",
+                value: leads.filter((l) => l.email).length,
+                icon: Mail,
+              },
+              {
+                label: "URLs Found",
+                value: totalUrlsFound,
+                icon: Cpu,
+              },
+              {
+                label: "Avg Score",
+                value: leads.some((l) => l.score)
+                  ? Math.round(
+                      leads.reduce((acc, l) => acc + (l.score || 0), 0) /
+                        leads.filter((l) => l.score).length
+                    )
+                  : "—",
+                icon: Zap,
+              },
             ].map((stat) => (
               <div key={stat.label} className="glass rounded-xl px-4 py-3">
                 <div className="flex items-center gap-2 mb-1">
                   <stat.icon className="h-3.5 w-3.5 text-white/20" />
-                  <span className="text-xs text-white/30 uppercase tracking-wider">{stat.label}</span>
+                  <span className="text-[10px] text-white/30 uppercase tracking-wider font-medium">
+                    {stat.label}
+                  </span>
                 </div>
                 <p className="text-2xl font-bold text-white">{stat.value}</p>
               </div>
@@ -175,14 +276,56 @@ export default function Home() {
         {/* Leads table */}
         <LeadsTable leads={leads} jobId={activeJobId || undefined} />
 
+        {/* Load More */}
+        {nextOffset !== null && !isLoading && leads.length > 0 && (
+          <div className="flex justify-center animate-slide-up">
+            <button
+              onClick={handleLoadMore}
+              className="flex items-center gap-2 h-11 px-6 rounded-xl bg-gradient-to-r from-purple-600/80 to-blue-600/80 text-white font-medium text-sm hover:from-purple-500 hover:to-blue-500 hover:shadow-[0_0_25px_oklch(0.55_0.25_270/30%)] transition-all"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Load More Leads
+              <span className="text-white/40 text-xs ml-1">
+                ({totalUrlsFound - nextOffset} URLs remaining)
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* Export reminder */}
+        {leads.length > 0 && (
+          <div className="glass rounded-xl px-5 py-4 flex items-center justify-between animate-slide-up">
+            <div>
+              <p className="text-sm text-white/60">
+                <span className="text-white font-medium">{leads.length} leads</span> ready to export
+              </p>
+              <p className="text-xs text-white/25 mt-0.5">
+                Download as CSV to use in your CRM, email tool, or spreadsheet.
+              </p>
+            </div>
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-2 h-10 px-5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/20 transition-all shrink-0"
+            >
+              <Download className="h-4 w-4" />
+              Download CSV
+            </button>
+          </div>
+        )}
+
         {/* Job history */}
-        <JobHistory jobs={jobs} onSelectJob={handleSelectJob} activeJobId={activeJobId} />
+        <JobHistory
+          jobs={jobs}
+          onSelectJob={handleSelectJob}
+          activeJobId={activeJobId}
+        />
 
         {/* Footer */}
         <div className="text-center py-8 border-t border-white/[0.03]">
           <p className="text-[11px] text-white/15 max-w-lg mx-auto leading-relaxed">
-            LeadGen AI collects only publicly available data. We respect robots.txt,
-            implement rate limiting, and maintain full traceability logs for compliance.
+            LeadGen AI collects only publicly available data. We respect
+            robots.txt, implement rate limiting, and maintain full traceability
+            logs for compliance.
           </p>
         </div>
       </div>
