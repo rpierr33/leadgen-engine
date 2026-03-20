@@ -10,20 +10,7 @@ import {
   flexRender,
   type ColumnDef,
   type SortingState,
-  type ColumnFiltersState,
 } from "@tanstack/react-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowUpDown,
   Download,
@@ -31,9 +18,9 @@ import {
   ChevronRight,
   ExternalLink,
   Mail,
-  UserCircle,
   Search,
   Linkedin,
+  User,
 } from "lucide-react";
 
 interface Lead {
@@ -55,7 +42,6 @@ interface LeadsTableProps {
 
 export function LeadsTable({ leads, jobId }: LeadsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
   const columns = useMemo<ColumnDef<Lead>[]>(
@@ -63,51 +49,53 @@ export function LeadsTable({ leads, jobId }: LeadsTableProps) {
       {
         accessorKey: "name",
         header: ({ column }) => (
-          <Button
-            variant="ghost"
+          <button
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="text-slate-400 hover:text-white -ml-4"
+            className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors text-xs font-medium uppercase tracking-wider"
           >
             Name
-            <ArrowUpDown className="ml-2 h-3 w-3" />
-          </Button>
+            <ArrowUpDown className="h-3 w-3" />
+          </button>
         ),
         cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <UserCircle className="h-4 w-4 text-purple-400 shrink-0" />
-            <span className="font-medium text-white">{row.getValue("name")}</span>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center shrink-0">
+              <User className="h-3.5 w-3.5 text-purple-300" />
+            </div>
+            <span className="font-medium text-white text-sm">{row.getValue("name")}</span>
           </div>
         ),
       },
       {
         accessorKey: "role",
         header: ({ column }) => (
-          <Button
-            variant="ghost"
+          <button
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="text-slate-400 hover:text-white -ml-4"
+            className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors text-xs font-medium uppercase tracking-wider"
           >
             Role
-            <ArrowUpDown className="ml-2 h-3 w-3" />
-          </Button>
+            <ArrowUpDown className="h-3 w-3" />
+          </button>
         ),
         cell: ({ row }) => (
-          <span className="text-slate-300">{row.getValue("role") || "—"}</span>
+          <span className="text-white/50 text-sm">{row.getValue("role") || "—"}</span>
         ),
       },
       {
         accessorKey: "email",
-        header: "Email",
+        header: () => (
+          <span className="text-white/40 text-xs font-medium uppercase tracking-wider">Email</span>
+        ),
         cell: ({ row }) => {
           const email = row.getValue("email") as string | null;
-          if (!email) return <span className="text-slate-600">—</span>;
+          if (!email) return <span className="text-white/15">—</span>;
           return (
             <a
               href={`mailto:${email}`}
-              className="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 transition-colors"
+              className="flex items-center gap-1.5 text-blue-400/80 hover:text-blue-300 transition-colors text-sm group"
             >
-              <Mail className="h-3 w-3" />
-              <span className="text-sm">{email}</span>
+              <Mail className="h-3 w-3 opacity-50 group-hover:opacity-100" />
+              <span className="truncate max-w-[180px]">{email}</span>
             </a>
           );
         },
@@ -115,59 +103,62 @@ export function LeadsTable({ leads, jobId }: LeadsTableProps) {
       {
         accessorKey: "company",
         header: ({ column }) => (
-          <Button
-            variant="ghost"
+          <button
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="text-slate-400 hover:text-white -ml-4"
+            className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors text-xs font-medium uppercase tracking-wider"
           >
             Company
-            <ArrowUpDown className="ml-2 h-3 w-3" />
-          </Button>
+            <ArrowUpDown className="h-3 w-3" />
+          </button>
         ),
         cell: ({ row }) => (
-          <span className="text-slate-200 font-medium">{row.getValue("company")}</span>
+          <span className="text-white/70 text-sm font-medium">{row.getValue("company")}</span>
         ),
       },
       {
         accessorKey: "score",
         header: ({ column }) => (
-          <Button
-            variant="ghost"
+          <button
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="text-slate-400 hover:text-white -ml-4"
+            className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors text-xs font-medium uppercase tracking-wider"
           >
             Score
-            <ArrowUpDown className="ml-2 h-3 w-3" />
-          </Button>
+            <ArrowUpDown className="h-3 w-3" />
+          </button>
         ),
         cell: ({ row }) => {
           const score = row.getValue("score") as number | null;
-          if (score === null) return <span className="text-slate-600">—</span>;
+          if (score === null) return <span className="text-white/15">—</span>;
           const color =
             score >= 75
-              ? "bg-green-500/10 text-green-400 border-green-500/20"
+              ? "from-emerald-500/20 to-emerald-500/5 text-emerald-400 border-emerald-500/20"
               : score >= 50
-                ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-                : "bg-red-500/10 text-red-400 border-red-500/20";
+                ? "from-amber-500/20 to-amber-500/5 text-amber-400 border-amber-500/20"
+                : "from-red-500/20 to-red-500/5 text-red-400 border-red-500/20";
           return (
-            <Badge variant="outline" className={color} title={row.original.scoreReason || ""}>
+            <div
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-lg bg-gradient-to-r border text-xs font-semibold ${color}`}
+              title={row.original.scoreReason || ""}
+            >
               {score}
-            </Badge>
+            </div>
           );
         },
       },
       {
         accessorKey: "linkedin",
-        header: "LinkedIn",
+        header: () => (
+          <span className="text-white/40 text-xs font-medium uppercase tracking-wider">LI</span>
+        ),
         cell: ({ row }) => {
           const linkedin = row.getValue("linkedin") as string | null;
-          if (!linkedin) return <span className="text-slate-600">—</span>;
+          if (!linkedin) return <span className="text-white/15">—</span>;
           return (
             <a
               href={linkedin}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300"
+              className="text-blue-400/60 hover:text-blue-300 transition-colors"
             >
               <Linkedin className="h-4 w-4" />
             </a>
@@ -176,24 +167,26 @@ export function LeadsTable({ leads, jobId }: LeadsTableProps) {
       },
       {
         accessorKey: "sourceUrl",
-        header: "Source",
+        header: () => (
+          <span className="text-white/40 text-xs font-medium uppercase tracking-wider">Source</span>
+        ),
         cell: ({ row }) => {
           const url = row.getValue("sourceUrl") as string;
-          let displayUrl = url;
+          let display = url;
           try {
-            displayUrl = new URL(url).hostname;
+            display = new URL(url).hostname.replace("www.", "");
           } catch {
-            // keep original
+            // keep
           }
           return (
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-sm"
+              className="flex items-center gap-1.5 text-white/25 hover:text-white/50 transition-colors text-xs group"
             >
-              <ExternalLink className="h-3 w-3" />
-              {displayUrl}
+              <ExternalLink className="h-3 w-3 opacity-50 group-hover:opacity-100" />
+              {display}
             </a>
           );
         },
@@ -205,9 +198,8 @@ export function LeadsTable({ leads, jobId }: LeadsTableProps) {
   const table = useReactTable({
     data: leads,
     columns,
-    state: { sorting, columnFilters, globalFilter },
+    state: { sorting, globalFilter },
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -222,114 +214,119 @@ export function LeadsTable({ leads, jobId }: LeadsTableProps) {
   };
 
   return (
-    <Card className="border-white/10 bg-slate-900/50 backdrop-blur">
-      <CardHeader className="pb-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <CardTitle className="text-lg text-white flex items-center gap-2">
-            Leads
-            <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/20">
+    <div className="glass rounded-2xl overflow-hidden animate-slide-up">
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-white/[0.04] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <h3 className="text-sm font-medium text-white/60">Leads</h3>
+          {leads.length > 0 && (
+            <span className="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 text-xs font-semibold border border-purple-500/20">
               {leads.length}
-            </Badge>
-          </CardTitle>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-none">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <Input
-                placeholder="Filter leads..."
-                value={globalFilter}
-                onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-9 h-9 w-full sm:w-64 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
-              />
-            </div>
-            <Button
-              onClick={handleExport}
-              variant="outline"
-              size="sm"
-              className="border-white/10 text-slate-300 hover:bg-white/5 hover:text-white shrink-0"
-              disabled={leads.length === 0}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              CSV
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="rounded-lg border border-white/5 overflow-hidden">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="border-white/5 hover:bg-transparent">
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="text-slate-400 font-medium">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-32 text-center text-slate-500"
-                  >
-                    {leads.length === 0
-                      ? "No leads yet. Start a search to generate leads."
-                      : "No results match your filter."}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className="border-white/5 hover:bg-white/[0.02] transition-colors"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+            </span>
+          )}
         </div>
 
-        {/* Pagination */}
-        {table.getPageCount() > 1 && (
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-sm text-slate-500">
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()} ({table.getFilteredRowModel().rows.length} leads)
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-                className="border-white/10 text-slate-400 hover:bg-white/5"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-                className="border-white/10 text-slate-400 hover:bg-white/5"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/20" />
+            <input
+              placeholder="Filter leads..."
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className="w-full sm:w-56 h-9 pl-9 pr-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/80 text-sm placeholder:text-white/20 focus:outline-none focus:border-purple-500/30 transition-colors"
+            />
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <button
+            onClick={handleExport}
+            disabled={leads.length === 0}
+            className="h-9 px-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/40 text-sm hover:bg-white/[0.06] hover:text-white/70 transition-all disabled:opacity-30 flex items-center gap-2 shrink-0"
+          >
+            <Download className="h-3.5 w-3.5" />
+            CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id} className="border-b border-white/[0.03]">
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    className="text-left px-6 py-3 first:pl-6"
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={columns.length}
+                  className="h-40 text-center text-white/20 text-sm"
+                >
+                  {leads.length === 0
+                    ? "No leads yet. Run a search to get started."
+                    : "No results match your filter."}
+                </td>
+              </tr>
+            ) : (
+              table.getRowModel().rows.map((row) => (
+                <tr
+                  key={row.id}
+                  className="border-b border-white/[0.02] hover:bg-white/[0.015] transition-colors"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-6 py-3.5 first:pl-6">
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {table.getPageCount() > 1 && (
+        <div className="px-6 py-3 border-t border-white/[0.03] flex items-center justify-between">
+          <p className="text-xs text-white/20">
+            Page {table.getState().pagination.pageIndex + 1} of{" "}
+            {table.getPageCount()} &middot; {table.getFilteredRowModel().rows.length} leads
+          </p>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="p-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/30 hover:text-white/60 disabled:opacity-30 transition-colors"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="p-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/30 hover:text-white/60 disabled:opacity-30 transition-colors"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

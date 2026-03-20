@@ -1,9 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { History, ChevronRight, Users } from "lucide-react";
+import { History, ChevronRight, Users, CheckCircle2, Loader2, XCircle, Clock } from "lucide-react";
 
 interface JobHistoryItem {
   id: string;
@@ -17,55 +14,76 @@ interface JobHistoryItem {
 interface JobHistoryProps {
   jobs: JobHistoryItem[];
   onSelectJob: (jobId: string) => void;
+  activeJobId?: string | null;
 }
 
-const statusColors: Record<string, string> = {
-  COMPLETED: "bg-green-500/10 text-green-400 border-green-500/20",
-  RUNNING: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  PENDING: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  FAILED: "bg-red-500/10 text-red-400 border-red-500/20",
-  CANCELLED: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+const statusIcons: Record<string, { icon: typeof Clock; color: string }> = {
+  COMPLETED: { icon: CheckCircle2, color: "text-emerald-400" },
+  RUNNING: { icon: Loader2, color: "text-purple-400" },
+  PENDING: { icon: Clock, color: "text-amber-400" },
+  FAILED: { icon: XCircle, color: "text-red-400" },
+  CANCELLED: { icon: XCircle, color: "text-white/20" },
 };
 
-export function JobHistory({ jobs, onSelectJob }: JobHistoryProps) {
+export function JobHistory({ jobs, onSelectJob, activeJobId }: JobHistoryProps) {
   if (jobs.length === 0) return null;
 
   return (
-    <Card className="border-white/10 bg-slate-900/50 backdrop-blur">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg text-white flex items-center gap-2">
-          <History className="h-5 w-5 text-slate-400" />
-          Job History
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {jobs.map((job) => (
-          <Button
-            key={job.id}
-            variant="ghost"
-            onClick={() => onSelectJob(job.id)}
-            className="w-full justify-between h-auto py-3 px-4 hover:bg-white/5 text-left"
-          >
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-white">{job.query}</span>
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                {job.industry && <span>{job.industry}</span>}
-                <span>{new Date(job.createdAt).toLocaleDateString()}</span>
+    <div className="glass rounded-2xl overflow-hidden animate-slide-up">
+      <div className="px-6 py-4 border-b border-white/[0.04] flex items-center gap-3">
+        <History className="h-4 w-4 text-white/30" />
+        <h3 className="text-sm font-medium text-white/60">Recent Jobs</h3>
+        <span className="text-xs text-white/20 ml-auto">{jobs.length} total</span>
+      </div>
+
+      <div className="divide-y divide-white/[0.03]">
+        {jobs.map((job) => {
+          const config = statusIcons[job.status] || statusIcons.PENDING;
+          const Icon = config.icon;
+          const isActive = activeJobId === job.id;
+
+          return (
+            <button
+              key={job.id}
+              onClick={() => onSelectJob(job.id)}
+              className={`w-full flex items-center gap-4 px-6 py-4 text-left transition-all duration-200 hover:bg-white/[0.02] group ${
+                isActive ? "bg-white/[0.03] border-l-2 border-purple-500" : ""
+              }`}
+            >
+              <div className={`p-1.5 rounded-lg bg-white/[0.03] ${config.color}`}>
+                <Icon className={`h-3.5 w-3.5 ${job.status === "RUNNING" ? "animate-spin" : ""}`} />
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 text-xs text-slate-400">
-                <Users className="h-3 w-3" />
-                {job.leadsCount}
+
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white/80 truncate">
+                  {job.query}
+                </p>
+                <div className="flex items-center gap-3 mt-0.5">
+                  {job.industry && (
+                    <span className="text-xs text-white/20">{job.industry}</span>
+                  )}
+                  <span className="text-xs text-white/15">
+                    {new Date(job.createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
               </div>
-              <Badge variant="outline" className={statusColors[job.status] || statusColors.PENDING}>
-                {job.status}
-              </Badge>
-              <ChevronRight className="h-4 w-4 text-slate-600" />
-            </div>
-          </Button>
-        ))}
-      </CardContent>
-    </Card>
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 text-xs text-white/30">
+                  <Users className="h-3 w-3" />
+                  {job.leadsCount}
+                </div>
+                <ChevronRight className="h-4 w-4 text-white/10 group-hover:text-white/30 transition-colors" />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

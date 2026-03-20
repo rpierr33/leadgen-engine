@@ -1,16 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search, Sparkles, Loader2 } from "lucide-react";
+import { Search, Sparkles, Loader2, ArrowRight } from "lucide-react";
 
 const INDUSTRIES = [
   "Any Industry",
@@ -38,94 +29,141 @@ interface SearchHeroProps {
 export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
   const [query, setQuery] = useState("");
   const [industry, setIndustry] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-    onSearch(query.trim(), industry === "Any Industry" ? undefined : industry || undefined);
+    onSearch(
+      query.trim(),
+      industry && industry !== "Any Industry" ? industry : undefined
+    );
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 p-8 md:p-12">
-      {/* Animated gradient orbs */}
-      <div className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-purple-600/20 blur-[100px] animate-pulse" />
-      <div className="pointer-events-none absolute -bottom-20 -right-20 h-72 w-72 rounded-full bg-blue-600/20 blur-[100px] animate-pulse delay-1000" />
-      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-indigo-600/10 blur-[120px] animate-pulse delay-500" />
+    <div className="relative overflow-hidden rounded-3xl border border-white/[0.06]">
+      {/* Background gradient mesh */}
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-950/80 via-[oklch(0.1_0.03_270)] to-blue-950/60" />
 
-      <div className="relative z-10">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-blue-500">
-            <Sparkles className="h-4 w-4 text-white" />
+      {/* Animated orbs */}
+      <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-purple-600/15 blur-[120px] animate-pulse-glow" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-blue-600/15 blur-[120px] animate-float-delayed" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-indigo-500/8 blur-[150px] animate-float" />
+
+      {/* Grid overlay */}
+      <div
+        className="absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)",
+          backgroundSize: "60px 60px",
+        }}
+      />
+
+      <div className="relative z-10 px-6 py-16 sm:px-12 sm:py-20 lg:px-16 lg:py-24">
+        {/* Badge */}
+        <div className="flex items-center gap-2 mb-6 animate-slide-up">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full glass border border-purple-500/20">
+            <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+            <span className="text-xs font-medium text-purple-300 tracking-wide uppercase">
+              AI-Powered Lead Discovery
+            </span>
           </div>
-          <span className="text-sm font-medium text-purple-300">
-            AI-Powered Lead Discovery
-          </span>
         </div>
 
-        <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-3">
-          Discover High-Quality Leads{" "}
-          <span className="bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
-            Instantly
-          </span>
-        </h1>
+        {/* Heading */}
+        <div className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-[1.1] mb-4">
+            Discover Leads
+            <br />
+            <span className="text-gradient">Instantly with AI</span>
+          </h1>
+          <p className="text-lg text-white/40 max-w-xl mb-10 leading-relaxed">
+            Enter any niche, industry, or service. Our engine crawls the web,
+            extracts contacts with AI, and delivers enriched leads in minutes.
+          </p>
+        </div>
 
-        <p className="text-base md:text-lg text-slate-400 mb-8 max-w-2xl">
-          Enter a niche, industry, or service — our AI engine scrapes the web,
-          extracts contacts, and delivers enriched leads in minutes.
-        </p>
-
-        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-3xl">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
-            <Input
-              type="text"
-              placeholder="Enter a niche, industry, or service..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="h-12 pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-purple-500 focus:ring-purple-500/20 text-base"
-              disabled={isLoading}
-            />
-          </div>
-
-          <Select value={industry} onValueChange={(val) => setIndustry(val ?? "")}>
-            <SelectTrigger className="h-12 w-full sm:w-48 bg-white/5 border-white/10 text-white focus:border-purple-500">
-              <SelectValue placeholder="Industry" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-900 border-white/10">
-              {INDUSTRIES.map((ind) => (
-                <SelectItem
-                  key={ind}
-                  value={ind}
-                  className="text-white hover:bg-white/10 focus:bg-white/10"
-                >
-                  {ind}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button
-            type="submit"
-            disabled={isLoading || !query.trim()}
-            className="h-12 px-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold shadow-lg shadow-purple-500/25 transition-all hover:shadow-purple-500/40 disabled:opacity-50"
+        {/* Search form */}
+        <form
+          onSubmit={handleSubmit}
+          className="animate-slide-up"
+          style={{ animationDelay: "0.2s" }}
+        >
+          <div
+            className={`flex flex-col sm:flex-row gap-3 p-2 rounded-2xl transition-all duration-500 ${
+              isFocused
+                ? "glass-strong glow-purple"
+                : "glass"
+            }`}
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Generate Leads
-              </>
-            )}
-          </Button>
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30" />
+              <input
+                type="text"
+                placeholder="e.g. &quot;dental clinics in Miami&quot; or &quot;SaaS founders&quot;"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                disabled={isLoading}
+                className="w-full h-12 sm:h-14 pl-12 pr-4 bg-transparent text-white placeholder:text-white/25 text-base sm:text-lg focus:outline-none disabled:opacity-50"
+              />
+            </div>
+
+            <select
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+              className="h-12 sm:h-14 px-4 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/70 text-sm focus:outline-none focus:border-purple-500/30 appearance-none cursor-pointer sm:w-44"
+            >
+              <option value="" className="bg-[#1a1a2e]">Industry</option>
+              {INDUSTRIES.map((ind) => (
+                <option key={ind} value={ind} className="bg-[#1a1a2e]">
+                  {ind}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="submit"
+              disabled={isLoading || !query.trim()}
+              className="group h-12 sm:h-14 px-8 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold text-sm sm:text-base transition-all duration-300 hover:from-purple-500 hover:to-blue-500 hover:shadow-[0_0_30px_oklch(0.55_0.25_270/40%)] disabled:opacity-40 disabled:hover:shadow-none flex items-center justify-center gap-2 shrink-0"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Generate Leads
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </>
+              )}
+            </button>
+          </div>
         </form>
 
-        <p className="mt-4 text-xs text-slate-500">
-          Only publicly available data is collected. We respect robots.txt and rate limits.
-        </p>
+        {/* Trust bar */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-8 animate-slide-up" style={{ animationDelay: "0.3s" }}>
+          <div className="flex items-center gap-2 text-xs text-white/25">
+            <div className="w-1 h-1 rounded-full bg-green-400/60" />
+            Respects robots.txt
+          </div>
+          <div className="flex items-center gap-2 text-xs text-white/25">
+            <div className="w-1 h-1 rounded-full bg-green-400/60" />
+            Rate limited
+          </div>
+          <div className="flex items-center gap-2 text-xs text-white/25">
+            <div className="w-1 h-1 rounded-full bg-green-400/60" />
+            Public data only
+          </div>
+          <div className="flex items-center gap-2 text-xs text-white/25">
+            <div className="w-1 h-1 rounded-full bg-green-400/60" />
+            Full traceability
+          </div>
+        </div>
       </div>
     </div>
   );

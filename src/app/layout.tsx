@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LeadGen AI - Universal Lead Generation Engine",
+  title: "LeadGen AI — Discover High-Quality Leads Instantly",
   description:
-    "Discover, extract, and enrich business leads from publicly available web data using AI.",
+    "AI-powered lead generation engine. Enter a niche, industry, or service and instantly discover enriched business contacts from the web.",
 };
 
 export default function RootLayout({
@@ -28,7 +28,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col bg-slate-950">{children}</body>
+      <body className="min-h-full flex flex-col bg-[oklch(0.07_0.015_270)]">
+        {children}
+      </body>
     </html>
   );
 }
