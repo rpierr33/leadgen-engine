@@ -43,7 +43,7 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
   return (
     <div className="relative overflow-hidden rounded-3xl border border-white/[0.06]">
       {/* Background gradient mesh */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-950/80 via-[oklch(0.1_0.03_270)] to-blue-950/60" />
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/50 via-[oklch(0.16_0.03_270)] to-blue-900/40" />
 
       {/* Animated orbs */}
       <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-purple-600/15 blur-[120px] animate-pulse-glow" />

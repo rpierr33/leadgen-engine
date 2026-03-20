@@ -111,7 +111,7 @@ export default function Home() {
   return (
     <main className="min-h-screen">
       {/* Navbar */}
-      <header className="sticky top-0 z-50 border-b border-white/[0.04] bg-[oklch(0.07_0.015_270)]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-white/[0.04] bg-[oklch(0.14_0.01_270)]/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
