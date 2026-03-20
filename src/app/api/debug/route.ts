@@ -17,7 +17,9 @@ export async function GET() {
     log(`   Text preview: ${result.text.slice(0, 300)}`);
 
     if (result.text.length > 100) {
-      log("2. Extracting with AI...");
+      log("2. OPENAI_API_KEY set: " + (!!process.env.OPENAI_API_KEY) + " | length: " + (process.env.OPENAI_API_KEY?.length || 0));
+      log("   LLM_PROVIDER: " + (process.env.LLM_PROVIDER || "not set") + " | LLM_MODEL: " + (process.env.LLM_MODEL || "not set"));
+      log("3. Extracting with AI...");
       const extractor = createExtractor();
       const leads = await extractor.extract(result.text, testUrl);
       log(`   Extracted ${leads.length} leads`);

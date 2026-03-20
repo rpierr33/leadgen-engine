@@ -62,11 +62,13 @@ ${text}`;
       }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error("[Extractor] OpenAI error:", JSON.stringify(data));
+      throw new Error(`OpenAI API error: ${response.status} - ${data?.error?.message || JSON.stringify(data)}`);
     }
 
-    const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "[]";
     const leads = parseLeadsFromLLMOutput(content);
 
