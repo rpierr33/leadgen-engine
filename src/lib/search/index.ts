@@ -14,41 +14,17 @@ export function createSearchProvider(): SearchProvider {
   );
 }
 
-// Available sources users can select (multi-select checkboxes)
-export const LEAD_SOURCES = {
-  web: {
-    label: "Web (Team & About Pages)",
-    description: "Company websites, staff directories",
-    alwaysAvailable: true,
-  },
-  social: {
-    label: "Social Media",
-    description: "Facebook, Instagram, LinkedIn business pages",
-    alwaysAvailable: true,
-  },
-  healthgrades: {
-    label: "Healthgrades",
-    description: "Doctor & provider directory",
-    industries: ["Healthcare"],
-  },
-  vitals: {
-    label: "Vitals",
-    description: "Healthcare provider ratings & directory",
-    industries: ["Healthcare"],
-  },
-  ahca: {
-    label: "FL Health Finder (AHCA)",
-    description: "Florida licensed facility search (cached)",
-    industries: ["Healthcare"],
-  },
-  bbb: {
-    label: "Better Business Bureau",
-    description: "Accredited business directory",
-    alwaysAvailable: true,
-  },
-} as const;
-
-export type LeadSource = keyof typeof LEAD_SOURCES;
+export type LeadSource =
+  | "web"
+  | "facebook"
+  | "instagram"
+  | "linkedin"
+  | "tiktok"
+  | "x"
+  | "healthgrades"
+  | "vitals"
+  | "ahca"
+  | "bbb";
 
 export function buildSearchQueries(
   query: string,
@@ -68,12 +44,24 @@ export function buildSearchQueries(
         );
         break;
 
-      case "social":
-        queries.push(
-          `${base} site:facebook.com`,
-          `${base} site:instagram.com`,
-          `${base} site:linkedin.com/company`,
-        );
+      case "facebook":
+        queries.push(`${base} site:facebook.com`);
+        break;
+
+      case "instagram":
+        queries.push(`${base} site:instagram.com`);
+        break;
+
+      case "linkedin":
+        queries.push(`${base} site:linkedin.com/company`);
+        break;
+
+      case "tiktok":
+        queries.push(`${base} site:tiktok.com`);
+        break;
+
+      case "x":
+        queries.push(`${base} site:x.com OR site:twitter.com`);
         break;
 
       case "healthgrades":
@@ -84,28 +72,22 @@ export function buildSearchQueries(
         break;
 
       case "vitals":
-        queries.push(
-          `${base} site:vitals.com`,
-        );
+        queries.push(`${base} site:vitals.com`);
         break;
 
       case "ahca":
         queries.push(
           `${base} site:floridahealthfinder.gov`,
           `${base} florida licensed provider`,
-          `${base} AHCA license florida`,
         );
         break;
 
       case "bbb":
-        queries.push(
-          `${base} site:bbb.org`,
-        );
+        queries.push(`${base} site:bbb.org`);
         break;
     }
   }
 
-  // Deduplicate
   return [...new Set(queries)];
 }
 

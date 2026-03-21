@@ -56,12 +56,20 @@ export async function POST(request: NextRequest) {
       uniqueUrls.set(result.url, Math.max(existing, result.score));
     }
 
-    // Filter out noise domains (yelp, youtube, reddit) but keep everything else
-    // Social media domains are kept when user selects social source
-    const hasSocial = selectedSources.includes("social");
-    const skipDomains = ["yelp.com", "youtube.com", "reddit.com", "tiktok.com"];
-    if (!hasSocial) {
-      skipDomains.push("facebook.com", "instagram.com", "twitter.com", "x.com", "linkedin.com");
+    // Filter out noise domains but keep social platforms user selected
+    const socialSources = ["facebook", "instagram", "linkedin", "tiktok", "x"];
+    const selectedSocialDomains = selectedSources
+      .filter((s: string) => socialSources.includes(s))
+      .flatMap((s: string) => {
+        if (s === "x") return ["x.com", "twitter.com"];
+        return [`${s}.com`];
+      });
+    const skipDomains = ["yelp.com", "youtube.com", "reddit.com"];
+    const socialDomainList = ["facebook.com", "instagram.com", "twitter.com", "x.com", "linkedin.com", "tiktok.com"];
+    for (const sd of socialDomainList) {
+      if (!selectedSocialDomains.includes(sd)) {
+        skipDomains.push(sd);
+      }
     }
 
     const sortedUrls = [...uniqueUrls.entries()]
@@ -111,6 +119,7 @@ export async function POST(request: NextRequest) {
       email: string | null;
       linkedin: string | null;
       company: string;
+      domain: string;
       sourceUrl: string;
       location: string | null;
       score: number | null;
@@ -220,6 +229,7 @@ export async function POST(request: NextRequest) {
             email: savedLead.email,
             linkedin: savedLead.linkedin,
             company: savedLead.company,
+            domain,
             sourceUrl: savedLead.sourceUrl,
             location: savedLead.location,
             score: savedLead.score,

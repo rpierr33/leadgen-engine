@@ -25,6 +25,7 @@ interface Lead {
   email: string | null;
   linkedin: string | null;
   company: string;
+  domain?: string;
   location: string | null;
   score: number | null;
   scoreReason: string | null;
