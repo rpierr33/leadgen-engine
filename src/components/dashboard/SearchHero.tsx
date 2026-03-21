@@ -22,9 +22,12 @@ const INDUSTRIES = [
 ];
 
 const LIMITS = [5, 10, 15, 25, 50];
+const MODES = ["B2B", "Consumer", "Social"] as const;
+const SOCIAL_PLATFORMS = ["Instagram", "TikTok", "X", "LinkedIn", "All"] as const;
+const MIN_QUALITY_OPTIONS = [0, 25, 50, 75] as const;
 
 interface SearchHeroProps {
-  onSearch: (query: string, industry?: string, limit?: number) => void;
+  onSearch: (query: string, industry?: string, limit?: number, mode?: string, socialPlatform?: string, minQuality?: number) => void;
   isLoading: boolean;
 }
 
@@ -32,6 +35,9 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
   const [query, setQuery] = useState("");
   const [industry, setIndustry] = useState("");
   const [limit, setLimit] = useState(10);
+  const [mode, setMode] = useState<string>("B2B");
+  const [socialPlatform, setSocialPlatform] = useState<string>("All");
+  const [minQuality, setMinQuality] = useState<number>(0);
   const [isFocused, setIsFocused] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -41,7 +47,10 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
     onSearch(
       query.trim(),
       industry && industry !== "Any Industry" ? industry : undefined,
-      limit
+      limit,
+      mode.toLowerCase(),
+      mode === "Social" ? socialPlatform.toLowerCase() : undefined,
+      minQuality > 0 ? minQuality : undefined
     );
   };
 
@@ -171,6 +180,68 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
                       }`}
                     >
                       {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase tracking-widest text-white/25 pl-1">Lead Type</label>
+                <div className="flex gap-1">
+                  {MODES.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setMode(m)}
+                      className={`h-10 px-3 rounded-xl text-sm font-medium transition-all ${
+                        mode === m
+                          ? "bg-purple-500/20 border border-purple-500/30 text-purple-300"
+                          : "bg-white/[0.03] border border-white/[0.06] text-white/30 hover:text-white/50"
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {mode === "Social" && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase tracking-widest text-white/25 pl-1">Social Platform</label>
+                  <div className="flex gap-1">
+                    {SOCIAL_PLATFORMS.map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setSocialPlatform(p)}
+                        className={`h-10 px-3 rounded-xl text-sm font-medium transition-all ${
+                          socialPlatform === p
+                            ? "bg-blue-500/20 border border-blue-500/30 text-blue-300"
+                            : "bg-white/[0.03] border border-white/[0.06] text-white/30 hover:text-white/50"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase tracking-widest text-white/25 pl-1">Min Score</label>
+                <div className="flex gap-1">
+                  {MIN_QUALITY_OPTIONS.map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => setMinQuality(q)}
+                      className={`h-10 w-12 rounded-xl text-sm font-medium transition-all ${
+                        minQuality === q
+                          ? "bg-purple-500/20 border border-purple-500/30 text-purple-300"
+                          : "bg-white/[0.03] border border-white/[0.06] text-white/30 hover:text-white/50"
+                      }`}
+                    >
+                      {q}
                     </button>
                   ))}
                 </div>

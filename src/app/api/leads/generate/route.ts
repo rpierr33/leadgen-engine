@@ -10,7 +10,7 @@ export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query, industry, limit = 10, offset = 0 } = body;
+    const { query, industry, limit = 10, offset = 0, mode = "b2b", socialPlatform, minQuality = 0 } = body;
 
     if (!query || typeof query !== "string") {
       return NextResponse.json(
@@ -28,13 +28,15 @@ export async function POST(request: NextRequest) {
         query,
         industry: industry || null,
         status: "RUNNING",
+        mode: mode || null,
+        socialPlatform: socialPlatform || null,
       },
     });
 
     // Search for URLs
     const searchProvider = createSearchProvider();
     // Only run 2 search queries to save time
-    const queries = buildSearchQueries(query, industry).slice(0, 2);
+    const queries = buildSearchQueries(query, industry, mode as "b2b" | "consumer" | "social", socialPlatform).slice(0, 2);
     const allResults = [];
 
     for (const q of queries) {
@@ -54,7 +56,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Filter out URLs that won't have people (social media, yelp, etc)
-    const skipDomains = ["yelp.com", "facebook.com", "instagram.com", "twitter.com", "x.com", "youtube.com", "tiktok.com", "reddit.com"];
+    // In social mode, allow the targeted social platforms through
+    const baseSkipDomains = ["yelp.com", "facebook.com", "youtube.com", "reddit.com"];
+    const socialDomains = ["instagram.com", "twitter.com", "x.com", "tiktok.com", "linkedin.com"];
+    const skipDomains = mode === "social"
+      ? baseSkipDomains
+      : [...baseSkipDomains, ...socialDomains];
 
     const sortedUrls = [...uniqueUrls.entries()]
       .filter(([url]) => !skipDomains.some((d) => url.includes(d)))
@@ -104,9 +111,16 @@ export async function POST(request: NextRequest) {
       linkedin: string | null;
       company: string;
       sourceUrl: string;
+      location: string | null;
       score: number | null;
       scoreReason: string | null;
     }> = [];
+
+    // Track domain counts for diversity enforcement (max 3 leads per domain)
+    const domainCounts = new Map<string, number>();
+    function extractDomain(url: string): string {
+      try { return new URL(url).hostname.replace("www.", ""); } catch { return url; }
+    }
 
     // Scrape all URLs in parallel batches of 3
     const BATCH_SIZE = 3;
@@ -175,6 +189,12 @@ export async function POST(request: NextRequest) {
           );
           if (isDup) continue;
 
+          // Domain diversity: max 3 leads per domain
+          const domain = extractDomain(scrapeResult.url);
+          const currentDomainCount = domainCounts.get(domain) || 0;
+          if (currentDomainCount >= 3) continue;
+          domainCounts.set(domain, currentDomainCount + 1);
+
           // Save
           const savedLead = await prisma.lead.create({
             data: {
@@ -184,6 +204,7 @@ export async function POST(request: NextRequest) {
               linkedin: lead.linkedin,
               company: lead.company,
               sourceUrl: scrapeResult.url,
+              location: lead.location || null,
               score: null,
               scoreReason: null,
               jobId: job.id,
@@ -198,6 +219,7 @@ export async function POST(request: NextRequest) {
             linkedin: savedLead.linkedin,
             company: savedLead.company,
             sourceUrl: savedLead.sourceUrl,
+            location: savedLead.location,
             score: savedLead.score,
             scoreReason: savedLead.scoreReason,
           });
@@ -206,6 +228,57 @@ export async function POST(request: NextRequest) {
         console.error(`[Generate] Extraction error for ${scrapeResult.url}:`, err);
       }
     }
+
+    // Score each lead deterministically
+    function scoreLead(lead: {name: string; role: string | null; email: string | null; linkedin: string | null; company: string}, q: string): {score: number; reason: string} {
+      let score = 0;
+      const reasons: string[] = [];
+
+      // Decision maker bonus (30 pts)
+      const dmTitles = ["ceo", "founder", "owner", "president", "director", "vp", "partner", "managing", "principal", "chairman", "chief"];
+      const midTitles = ["manager", "head", "lead", "senior", "supervisor", "coordinator"];
+      const roleLower = (lead.role || "").toLowerCase();
+      if (dmTitles.some(t => roleLower.includes(t))) { score += 30; reasons.push("Decision maker"); }
+      else if (midTitles.some(t => roleLower.includes(t))) { score += 18; reasons.push("Mid-level"); }
+      else if (lead.role) { score += 8; reasons.push("Has role"); }
+
+      // Data completeness (20 pts)
+      if (lead.email) { score += 10; reasons.push("Has email"); }
+      if (lead.linkedin) { score += 5; reasons.push("Has LinkedIn"); }
+      if (lead.role) { score += 5; reasons.push("Has title"); }
+
+      // Relevance to query (30 pts)
+      const queryTerms = q.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+      const matchText = `${lead.name} ${lead.role || ""} ${lead.company}`.toLowerCase();
+      const matchCount = queryTerms.filter(t => matchText.includes(t)).length;
+      const relevance = queryTerms.length > 0 ? Math.round((matchCount / queryTerms.length) * 30) : 15;
+      score += relevance;
+      if (relevance > 15) reasons.push("Relevant match");
+
+      // Source quality (20 pts) - company page vs directory
+      score += 15; // base for being from a scraped page
+      if (lead.company && lead.company.length > 2) { score += 5; reasons.push("Named company"); }
+
+      return { score: Math.min(score, 100), reason: reasons.join(", ") };
+    }
+
+    // Apply scoring to each lead and update DB records
+    for (const lead of allLeads) {
+      const { score, reason } = scoreLead(lead, query);
+      lead.score = score;
+      lead.scoreReason = reason;
+      await prisma.lead.update({
+        where: { id: lead.id },
+        data: { score, scoreReason: reason },
+      });
+    }
+
+    // Filter out leads below minQuality threshold
+    const qualityThreshold = Math.max(0, Math.min(100, Number(minQuality) || 0));
+    const filteredLeads = allLeads.filter((l) => (l.score || 0) >= qualityThreshold);
+
+    // Sort by score descending
+    filteredLeads.sort((a, b) => (b.score || 0) - (a.score || 0));
 
     // Mark complete
     await prisma.job.update({
@@ -219,13 +292,13 @@ export async function POST(request: NextRequest) {
     const nextOffset = skipUrls + urlCount;
     const hasMore = nextOffset < sortedUrls.length;
 
-    console.log(`[Generate] Job done: ${allLeads.length} leads from "${query}"`);
+    console.log(`[Generate] Job done: ${filteredLeads.length} leads (${allLeads.length} before quality filter) from "${query}"`);
 
     return NextResponse.json({
       jobId: job.id,
       status: "COMPLETED",
-      leads: allLeads,
-      leadsCount: allLeads.length,
+      leads: filteredLeads,
+      leadsCount: filteredLeads.length,
       totalUrlsFound: sortedUrls.length,
       processedUrls: urlsToProcess.length,
       offset: skipUrls,

@@ -13,6 +13,9 @@ import {
   Download,
   RefreshCw,
   Trash2,
+  Clock,
+  Shield,
+  Eraser,
 } from "lucide-react";
 
 interface Lead {
@@ -22,6 +25,7 @@ interface Lead {
   email: string | null;
   linkedin: string | null;
   company: string;
+  location: string | null;
   score: number | null;
   scoreReason: string | null;
   sourceUrl: string;
@@ -43,6 +47,7 @@ export default function Home() {
   const [jobs, setJobs] = useState<JobHistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [dataRetention, setDataRetention] = useState<string>("Auto-Expire (3 days)");
 
   // Pagination state
   const [lastQuery, setLastQuery] = useState("");
@@ -79,6 +84,9 @@ export default function Home() {
     query: string,
     industry?: string,
     limit?: number,
+    mode?: string,
+    socialPlatform?: string,
+    minQuality?: number,
     offset?: number
   ) => {
     setIsLoading(true);
@@ -104,6 +112,9 @@ export default function Home() {
           industry,
           limit: limit || 10,
           offset: offset || 0,
+          mode,
+          socialPlatform,
+          minQuality,
         }),
       });
 
@@ -136,7 +147,7 @@ export default function Home() {
 
   const handleLoadMore = () => {
     if (nextOffset !== null && lastQuery) {
-      handleSearch(lastQuery, lastIndustry, lastLimit, nextOffset);
+      handleSearch(lastQuery, lastIndustry, lastLimit, undefined, undefined, undefined, nextOffset);
     }
   };
 
@@ -156,6 +167,22 @@ export default function Home() {
   const handleExport = () => {
     const params = activeJobId ? `?jobId=${activeJobId}` : "";
     window.open(`/api/leads/export${params}`, "_blank");
+  };
+
+  const handleDeleteAfterExport = async () => {
+    handleExport();
+    if (activeJobId) {
+      try {
+        await fetch(`/api/leads/clear?jobId=${activeJobId}`, { method: "DELETE" });
+        setLeads([]);
+        setActiveJobId(null);
+        setNextOffset(null);
+        setTotalUrlsFound(0);
+        fetchJobs();
+      } catch {
+        // silent
+      }
+    }
   };
 
   return (
@@ -238,6 +265,7 @@ export default function Home() {
                 label: "Total Leads",
                 value: leads.length,
                 icon: Database,
+                note: dataRetention === "Auto-Expire (3 days)" ? "auto-expires in 3 days" : undefined,
               },
               {
                 label: "With Email",
@@ -268,6 +296,9 @@ export default function Home() {
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-white">{stat.value}</p>
+                {"note" in stat && stat.note && (
+                  <p className="text-[10px] text-white/20 mt-0.5">{stat.note}</p>
+                )}
               </div>
             ))}
           </div>
@@ -310,6 +341,59 @@ export default function Home() {
               <Download className="h-4 w-4" />
               Download CSV
             </button>
+          </div>
+        )}
+
+        {/* Data Retention */}
+        {leads.length > 0 && (
+          <div className="glass rounded-xl px-5 py-4 animate-slide-up">
+            <div className="flex items-center gap-2 mb-3">
+              <Shield className="h-3.5 w-3.5 text-white/30" />
+              <span className="text-xs font-medium text-white/50 uppercase tracking-wider">Data Retention</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  setDataRetention("Delete After Export");
+                  handleDeleteAfterExport();
+                }}
+                className={`flex items-center gap-2 h-9 px-4 rounded-xl text-xs font-medium transition-all ${
+                  dataRetention === "Delete After Export"
+                    ? "bg-red-500/15 border border-red-500/25 text-red-400"
+                    : "bg-white/[0.03] border border-white/[0.06] text-white/30 hover:text-white/50"
+                }`}
+              >
+                <Eraser className="h-3 w-3" />
+                Delete After Export
+              </button>
+              <button
+                onClick={() => setDataRetention("Auto-Expire (3 days)")}
+                className={`flex items-center gap-2 h-9 px-4 rounded-xl text-xs font-medium transition-all ${
+                  dataRetention === "Auto-Expire (3 days)"
+                    ? "bg-amber-500/15 border border-amber-500/25 text-amber-400"
+                    : "bg-white/[0.03] border border-white/[0.06] text-white/30 hover:text-white/50"
+                }`}
+              >
+                <Clock className="h-3 w-3" />
+                Auto-Expire (3 days)
+              </button>
+              <button
+                onClick={() => setDataRetention("Keep Until Deleted")}
+                className={`flex items-center gap-2 h-9 px-4 rounded-xl text-xs font-medium transition-all ${
+                  dataRetention === "Keep Until Deleted"
+                    ? "bg-blue-500/15 border border-blue-500/25 text-blue-400"
+                    : "bg-white/[0.03] border border-white/[0.06] text-white/30 hover:text-white/50"
+                }`}
+              >
+                <Database className="h-3 w-3" />
+                Keep Until Deleted
+              </button>
+            </div>
+            {dataRetention === "Auto-Expire (3 days)" && (
+              <p className="text-[11px] text-white/20 mt-2">
+                Data will be automatically deleted 3 days after generation.
+              </p>
+            )}
           </div>
         )}
 

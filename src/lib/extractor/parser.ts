@@ -5,6 +5,7 @@ export interface ExtractedLead {
   linkedin: string | null;
   company: string;
   source_url: string;
+  location: string | null;
 }
 
 export function parseLeadsFromLLMOutput(raw: string): ExtractedLead[] {

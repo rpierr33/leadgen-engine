@@ -31,6 +31,7 @@ Each object:
 - "email": email ONLY if it explicitly appears in the text (string or null — never guess)
 - "linkedin": LinkedIn URL ONLY if explicitly in the text (string or null)
 - "company": the business name from the page, or "${companyHint}" if unclear (REQUIRED)
+- "location": city/state/country if mentioned on the page (string or null)
 - "source_url": "${sourceUrl}"
 
 IMPORTANT:
@@ -102,7 +103,7 @@ class OllamaExtractor implements LLMProvider {
 
     const prompt = `Extract every person mentioned on this page — staff, team, founders, doctors, etc. Return JSON array. Include people even if they only have a name.
 
-Each: {"name": string, "role": string|null, "email": string|null (only if in text), "linkedin": string|null (only if in text), "company": "${companyHint}", "source_url": "${sourceUrl}"}
+Each: {"name": string, "role": string|null, "email": string|null (only if in text), "linkedin": string|null (only if in text), "company": "${companyHint}", "location": string|null (city/state/country if mentioned), "source_url": "${sourceUrl}"}
 
 Return ONLY valid JSON array.
 

@@ -30,6 +30,7 @@ interface Lead {
   email: string | null;
   linkedin: string | null;
   company: string;
+  location: string | null;
   score: number | null;
   scoreReason: string | null;
   sourceUrl: string;
@@ -113,6 +114,21 @@ export function LeadsTable({ leads, jobId }: LeadsTableProps) {
         ),
         cell: ({ row }) => (
           <span className="text-white/70 text-sm font-medium">{row.getValue("company")}</span>
+        ),
+      },
+      {
+        accessorKey: "location",
+        header: ({ column }) => (
+          <button
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors text-xs font-medium uppercase tracking-wider"
+          >
+            Location
+            <ArrowUpDown className="h-3 w-3" />
+          </button>
+        ),
+        cell: ({ row }) => (
+          <span className="text-white/50 text-sm">{row.getValue("location") || "—"}</span>
         ),
       },
       {

@@ -26,6 +26,8 @@ model Job {
   updatedAt     DateTime  @updatedAt
   completedAt   DateTime?
   error         String?
+  mode          String?
+  socialPlatform String?
   leads         Lead[]
   traceLogs     TraceLog[]
 
@@ -43,6 +45,7 @@ model Lead {
   sourceUrl   String
   score       Int?
   scoreReason String?
+  location    String?
   jobId       String
   job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
