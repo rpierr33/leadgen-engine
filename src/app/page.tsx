@@ -164,6 +164,21 @@ export default function Home() {
     setTotalUrlsFound(0);
   };
 
+  const handleDeleteNow = async () => {
+    if (activeJobId) {
+      try {
+        await fetch(`/api/leads/clear?jobId=${activeJobId}`, { method: "DELETE" });
+      } catch {
+        // silent
+      }
+    }
+    setLeads([]);
+    setActiveJobId(null);
+    setNextOffset(null);
+    setTotalUrlsFound(0);
+    fetchJobs();
+  };
+
   const handleExport = () => {
     const params = activeJobId ? `?jobId=${activeJobId}` : "";
     window.open(`/api/leads/export${params}`, "_blank");
@@ -353,6 +368,13 @@ export default function Home() {
             </div>
             <div className="flex flex-wrap gap-2">
               <button
+                onClick={handleDeleteNow}
+                className="flex items-center gap-2 h-9 px-4 rounded-xl text-xs font-medium transition-all bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20"
+              >
+                <Trash2 className="h-3 w-3" />
+                Delete Now
+              </button>
+              <button
                 onClick={() => {
                   setDataRetention("Delete After Export");
                   handleDeleteAfterExport();
@@ -364,7 +386,7 @@ export default function Home() {
                 }`}
               >
                 <Eraser className="h-3 w-3" />
-                Delete After Export
+                Export & Delete
               </button>
               <button
                 onClick={() => setDataRetention("Auto-Expire (3 days)")}

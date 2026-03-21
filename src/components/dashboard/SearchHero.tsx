@@ -22,7 +22,8 @@ const INDUSTRIES = [
 ];
 
 const LIMITS = [5, 10, 15, 25, 50];
-const MODES = ["B2B", "Consumer", "Social"] as const;
+const MODES = ["Companies", "Individuals", "Social"] as const;
+const MODE_MAP: Record<string, string> = { Companies: "b2b", Individuals: "consumer", Social: "social" };
 const SOCIAL_PLATFORMS = ["Instagram", "TikTok", "X", "LinkedIn", "All"] as const;
 const MIN_QUALITY_OPTIONS = [0, 25, 50, 75] as const;
 
@@ -35,7 +36,7 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
   const [query, setQuery] = useState("");
   const [industry, setIndustry] = useState("");
   const [limit, setLimit] = useState(10);
-  const [mode, setMode] = useState<string>("B2B");
+  const [mode, setMode] = useState<string>("Companies");
   const [socialPlatform, setSocialPlatform] = useState<string>("All");
   const [minQuality, setMinQuality] = useState<number>(0);
   const [isFocused, setIsFocused] = useState(false);
@@ -48,7 +49,7 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
       query.trim(),
       industry && industry !== "Any Industry" ? industry : undefined,
       limit,
-      mode.toLowerCase(),
+      MODE_MAP[mode] || "b2b",
       mode === "Social" ? socialPlatform.toLowerCase() : undefined,
       minQuality > 0 ? minQuality : undefined
     );

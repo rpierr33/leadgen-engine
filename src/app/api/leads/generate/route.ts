@@ -116,8 +116,8 @@ export async function POST(request: NextRequest) {
       scoreReason: string | null;
     }> = [];
 
-    // Track domain counts for diversity enforcement (max 3 leads per domain)
-    const domainCounts = new Map<string, number>();
+    // Track domains — 1 lead per domain (same domain = same company = 1 lead)
+    const seenDomains = new Set<string>();
     function extractDomain(url: string): string {
       try { return new URL(url).hostname.replace("www.", ""); } catch { return url; }
     }
@@ -169,61 +169,65 @@ export async function POST(request: NextRequest) {
         const extractedLeads = await extractor.extract(scrapeResult.text, scrapeResult.url);
         console.log(`[Generate] Extracted ${extractedLeads.length} leads from ${scrapeResult.url.slice(0, 60)}`);
 
-        for (const lead of extractedLeads) {
-          if (allLeads.length >= maxLeads) break;
-          if (!lead.name || !lead.company) continue;
+        // 1 lead per domain — pick the best person (highest-ranking title)
+        const domain = extractDomain(scrapeResult.url);
+        if (seenDomains.has(domain)) continue;
 
-          // Enrich email
-          const enrichedEmail = await enrichLead(
-            lead.name,
-            lead.company,
-            scrapeResult.url,
-            lead.email
-          );
+        // Rank extracted leads by decision-maker weight
+        const dmTitles = ["ceo", "founder", "owner", "president", "director", "partner", "chairman", "chief"];
+        const midTitles = ["manager", "head", "lead", "senior", "vp", "managing"];
 
-          // Dedup within batch
-          const isDup = allLeads.some(
-            (l) =>
-              l.name.toLowerCase() === lead.name.toLowerCase() &&
-              l.company.toLowerCase() === lead.company.toLowerCase()
-          );
-          if (isDup) continue;
-
-          // Domain diversity: max 3 leads per domain
-          const domain = extractDomain(scrapeResult.url);
-          const currentDomainCount = domainCounts.get(domain) || 0;
-          if (currentDomainCount >= 3) continue;
-          domainCounts.set(domain, currentDomainCount + 1);
-
-          // Save
-          const savedLead = await prisma.lead.create({
-            data: {
-              name: lead.name,
-              role: lead.role,
-              email: enrichedEmail,
-              linkedin: lead.linkedin,
-              company: lead.company,
-              sourceUrl: scrapeResult.url,
-              location: lead.location || null,
-              score: null,
-              scoreReason: null,
-              jobId: job.id,
-            },
+        const ranked = extractedLeads
+          .filter((l) => l.name && l.company)
+          .sort((a, b) => {
+            const roleA = (a.role || "").toLowerCase();
+            const roleB = (b.role || "").toLowerCase();
+            const scoreA = dmTitles.some((t) => roleA.includes(t)) ? 3 : midTitles.some((t) => roleA.includes(t)) ? 2 : a.role ? 1 : 0;
+            const scoreB = dmTitles.some((t) => roleB.includes(t)) ? 3 : midTitles.some((t) => roleB.includes(t)) ? 2 : b.role ? 1 : 0;
+            return scoreB - scoreA;
           });
 
-          allLeads.push({
-            id: savedLead.id,
-            name: savedLead.name,
-            role: savedLead.role,
-            email: savedLead.email,
-            linkedin: savedLead.linkedin,
-            company: savedLead.company,
-            sourceUrl: savedLead.sourceUrl,
-            location: savedLead.location,
-            score: savedLead.score,
-            scoreReason: savedLead.scoreReason,
-          });
-        }
+        const bestLead = ranked[0];
+        if (!bestLead) continue;
+
+        seenDomains.add(domain);
+
+        // Enrich email
+        const enrichedEmail = await enrichLead(
+          bestLead.name,
+          bestLead.company,
+          scrapeResult.url,
+          bestLead.email
+        );
+
+        // Save
+        const savedLead = await prisma.lead.create({
+          data: {
+            name: bestLead.name,
+            role: bestLead.role,
+            email: enrichedEmail,
+            linkedin: bestLead.linkedin,
+            company: bestLead.company,
+            sourceUrl: scrapeResult.url,
+            location: bestLead.location || null,
+            score: null,
+            scoreReason: null,
+            jobId: job.id,
+          },
+        });
+
+        allLeads.push({
+          id: savedLead.id,
+          name: savedLead.name,
+          role: savedLead.role,
+          email: savedLead.email,
+          linkedin: savedLead.linkedin,
+          company: savedLead.company,
+          sourceUrl: savedLead.sourceUrl,
+          location: savedLead.location,
+          score: savedLead.score,
+          scoreReason: savedLead.scoreReason,
+        });
       } catch (err) {
         console.error(`[Generate] Extraction error for ${scrapeResult.url}:`, err);
       }
