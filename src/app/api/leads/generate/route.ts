@@ -10,7 +10,7 @@ export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query, industry, limit = 10, offset = 0, mode = "b2b", socialPlatform, minQuality = 0 } = body;
+    const { query, industry, limit = 10, offset = 0, sources = ["web"], minQuality = 0 } = body;
 
     if (!query || typeof query !== "string") {
       return NextResponse.json(
@@ -28,18 +28,19 @@ export async function POST(request: NextRequest) {
         query,
         industry: industry || null,
         status: "RUNNING",
-        mode: mode || null,
-        socialPlatform: socialPlatform || null,
+        mode: Array.isArray(sources) ? sources.join(",") : null,
       },
     });
 
-    // Search for URLs
+    // Search for URLs from selected sources
     const searchProvider = createSearchProvider();
-    // Only run 2 search queries to save time
-    const queries = buildSearchQueries(query, industry, mode as "b2b" | "consumer" | "social", socialPlatform).slice(0, 2);
+    const selectedSources = Array.isArray(sources) ? sources : ["web"];
+    const queries = buildSearchQueries(query, industry, selectedSources);
+    // Run up to 6 queries (more sources = more queries, but cap it)
+    const queriesToRun = queries.slice(0, 6);
     const allResults = [];
 
-    for (const q of queries) {
+    for (const q of queriesToRun) {
       try {
         const results = await searchProvider.search(q, 10);
         allResults.push(...results);
@@ -55,13 +56,13 @@ export async function POST(request: NextRequest) {
       uniqueUrls.set(result.url, Math.max(existing, result.score));
     }
 
-    // Filter out URLs that won't have people (social media, yelp, etc)
-    // In social mode, allow the targeted social platforms through
-    const baseSkipDomains = ["yelp.com", "facebook.com", "youtube.com", "reddit.com"];
-    const socialDomains = ["instagram.com", "twitter.com", "x.com", "tiktok.com", "linkedin.com"];
-    const skipDomains = mode === "social"
-      ? baseSkipDomains
-      : [...baseSkipDomains, ...socialDomains];
+    // Filter out noise domains (yelp, youtube, reddit) but keep everything else
+    // Social media domains are kept when user selects social source
+    const hasSocial = selectedSources.includes("social");
+    const skipDomains = ["yelp.com", "youtube.com", "reddit.com", "tiktok.com"];
+    if (!hasSocial) {
+      skipDomains.push("facebook.com", "instagram.com", "twitter.com", "x.com", "linkedin.com");
+    }
 
     const sortedUrls = [...uniqueUrls.entries()]
       .filter(([url]) => !skipDomains.some((d) => url.includes(d)))

@@ -14,49 +14,99 @@ export function createSearchProvider(): SearchProvider {
   );
 }
 
+// Available sources users can select (multi-select checkboxes)
+export const LEAD_SOURCES = {
+  web: {
+    label: "Web (Team & About Pages)",
+    description: "Company websites, staff directories",
+    alwaysAvailable: true,
+  },
+  social: {
+    label: "Social Media",
+    description: "Facebook, Instagram, LinkedIn business pages",
+    alwaysAvailable: true,
+  },
+  healthgrades: {
+    label: "Healthgrades",
+    description: "Doctor & provider directory",
+    industries: ["Healthcare"],
+  },
+  vitals: {
+    label: "Vitals",
+    description: "Healthcare provider ratings & directory",
+    industries: ["Healthcare"],
+  },
+  ahca: {
+    label: "FL Health Finder (AHCA)",
+    description: "Florida licensed facility search (cached)",
+    industries: ["Healthcare"],
+  },
+  bbb: {
+    label: "Better Business Bureau",
+    description: "Accredited business directory",
+    alwaysAvailable: true,
+  },
+} as const;
+
+export type LeadSource = keyof typeof LEAD_SOURCES;
+
 export function buildSearchQueries(
   query: string,
   industry?: string,
-  mode: "b2b" | "consumer" | "social" = "b2b",
-  socialPlatform?: "instagram" | "tiktok" | "x" | "linkedin" | "all"
+  sources: LeadSource[] = ["web"],
 ): string[] {
   const base = industry ? `${query} ${industry}` : query;
+  const queries: string[] = [];
 
-  if (mode === "social") {
-    const platforms: Record<string, string> = {
-      instagram: "site:instagram.com",
-      tiktok: "site:tiktok.com",
-      x: "site:x.com",
-      linkedin: "site:linkedin.com",
-    };
+  for (const source of sources) {
+    switch (source) {
+      case "web":
+        queries.push(
+          `${base} team page`,
+          `${base} about us contact`,
+          `${base} leadership founders`,
+        );
+        break;
 
-    if (socialPlatform && socialPlatform !== "all" && platforms[socialPlatform]) {
-      return [
-        `${base} ${platforms[socialPlatform]}`,
-        `${base} contact ${platforms[socialPlatform]}`,
-      ];
+      case "social":
+        queries.push(
+          `${base} site:facebook.com`,
+          `${base} site:instagram.com`,
+          `${base} site:linkedin.com/company`,
+        );
+        break;
+
+      case "healthgrades":
+        queries.push(
+          `${base} site:healthgrades.com`,
+          `${base} provider site:healthgrades.com`,
+        );
+        break;
+
+      case "vitals":
+        queries.push(
+          `${base} site:vitals.com`,
+        );
+        break;
+
+      case "ahca":
+        queries.push(
+          `${base} site:floridahealthfinder.gov`,
+          `${base} florida licensed provider`,
+          `${base} AHCA license florida`,
+        );
+        break;
+
+      case "bbb":
+        queries.push(
+          `${base} site:bbb.org`,
+        );
+        break;
     }
-
-    // "all" or unspecified — search all platforms
-    return Object.values(platforms).map((site) => `${base} ${site}`);
   }
 
-  if (mode === "consumer") {
-    return [
-      `${base} directory listing`,
-      `${base} reviews professionals`,
-      `${base} individual practitioner`,
-      `${base} local business listing`,
-    ];
-  }
-
-  // b2b (default — current behavior)
-  return [
-    `${base} team page`,
-    `${base} about us contact`,
-    `${base} leadership founders`,
-    `${base} staff directory`,
-  ];
+  // Deduplicate
+  return [...new Set(queries)];
 }
 
 export { type SearchProvider, type SearchResult } from "./types";

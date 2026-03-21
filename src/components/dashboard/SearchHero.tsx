@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Sparkles, Loader2, ArrowRight, SlidersHorizontal } from "lucide-react";
+import { Search, Sparkles, Loader2, ArrowRight, SlidersHorizontal, Check } from "lucide-react";
 
 const INDUSTRIES = [
   "Any Industry",
@@ -22,13 +22,26 @@ const INDUSTRIES = [
 ];
 
 const LIMITS = [5, 10, 15, 25, 50];
-const MODES = ["Companies", "Individuals", "Social"] as const;
-const MODE_MAP: Record<string, string> = { Companies: "b2b", Individuals: "consumer", Social: "social" };
-const SOCIAL_PLATFORMS = ["Instagram", "TikTok", "X", "LinkedIn", "All"] as const;
 const MIN_QUALITY_OPTIONS = [0, 25, 50, 75] as const;
 
+interface SourceOption {
+  key: string;
+  label: string;
+  desc: string;
+  industries?: string[]; // only show for these industries, undefined = always
+}
+
+const ALL_SOURCES: SourceOption[] = [
+  { key: "web", label: "Web", desc: "Company team & about pages" },
+  { key: "social", label: "Social", desc: "Facebook, Instagram, LinkedIn" },
+  { key: "healthgrades", label: "Healthgrades", desc: "Provider directory", industries: ["Healthcare"] },
+  { key: "vitals", label: "Vitals", desc: "Provider ratings", industries: ["Healthcare"] },
+  { key: "ahca", label: "FL Health (AHCA)", desc: "Florida licensed providers", industries: ["Healthcare"] },
+  { key: "bbb", label: "BBB", desc: "Better Business Bureau" },
+];
+
 interface SearchHeroProps {
-  onSearch: (query: string, industry?: string, limit?: number, mode?: string, socialPlatform?: string, minQuality?: number) => void;
+  onSearch: (query: string, industry?: string, limit?: number, sources?: string[], minQuality?: number) => void;
   isLoading: boolean;
 }
 
@@ -36,21 +49,33 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
   const [query, setQuery] = useState("");
   const [industry, setIndustry] = useState("");
   const [limit, setLimit] = useState(10);
-  const [mode, setMode] = useState<string>("Companies");
-  const [socialPlatform, setSocialPlatform] = useState<string>("All");
+  const [selectedSources, setSelectedSources] = useState<string[]>(["web", "social"]);
   const [minQuality, setMinQuality] = useState<number>(0);
   const [isFocused, setIsFocused] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
+  const toggleSource = (key: string) => {
+    setSelectedSources((prev) =>
+      prev.includes(key) ? prev.filter((s) => s !== key) : [...prev, key]
+    );
+  };
+
+  const currentIndustry = industry && industry !== "Any Industry" ? industry : undefined;
+
+  // Filter sources by industry
+  const availableSources = ALL_SOURCES.filter(
+    (s) => !s.industries || (currentIndustry && s.industries.includes(currentIndustry))
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
+    const sources = selectedSources.length > 0 ? selectedSources : ["web"];
     onSearch(
       query.trim(),
-      industry && industry !== "Any Industry" ? industry : undefined,
+      currentIndustry,
       limit,
-      MODE_MAP[mode] || "b2b",
-      mode === "Social" ? socialPlatform.toLowerCase() : undefined,
+      sources,
       minQuality > 0 ? minQuality : undefined
     );
   };
@@ -91,7 +116,7 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
           </h1>
           <p className="text-lg text-white/40 max-w-xl mb-8 leading-relaxed">
             Enter any niche, industry, or service. Get enriched business
-            contacts in minutes — export and move on.
+            contacts from multiple sources — export and move on.
           </p>
         </div>
 
@@ -106,7 +131,7 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30" />
               <input
                 type="text"
-                placeholder='e.g. "dental clinics in Miami" or "SaaS founders"'
+                placeholder='e.g. "nurse registries in broward county"'
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onFocus={() => setIsFocused(true)}
@@ -127,6 +152,11 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
             >
               <SlidersHorizontal className="h-4 w-4" />
               <span className="hidden sm:inline">Filters</span>
+              {selectedSources.length > 1 && (
+                <span className="w-5 h-5 rounded-full bg-purple-500/30 text-purple-300 text-[10px] flex items-center justify-center font-bold">
+                  {selectedSources.length}
+                </span>
+              )}
             </button>
 
             <button
@@ -151,13 +181,14 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
 
           {/* Expanded filters */}
           {showFilters && (
-            <div className="flex flex-wrap gap-3 mt-3 px-2 animate-slide-up">
-              <div className="flex flex-col gap-1">
+            <div className="flex flex-wrap gap-4 mt-4 px-2 animate-slide-up">
+              {/* Industry */}
+              <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] uppercase tracking-widest text-white/25 pl-1">Industry</label>
                 <select
                   value={industry}
                   onChange={(e) => setIndustry(e.target.value)}
-                  className="h-10 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/70 text-sm focus:outline-none focus:border-purple-500/30 appearance-none cursor-pointer sm:w-44"
+                  className="h-10 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/70 text-sm focus:outline-none focus:border-purple-500/30 appearance-none cursor-pointer w-44"
                 >
                   <option value="" className="bg-[#1e1e2e]">Any</option>
                   {INDUSTRIES.map((ind) => (
@@ -166,8 +197,9 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
                 </select>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] uppercase tracking-widest text-white/25 pl-1">Max Leads</label>
+              {/* Max Leads */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase tracking-widest text-white/25 pl-1">Max Companies</label>
                 <div className="flex gap-1">
                   {LIMITS.map((l) => (
                     <button
@@ -186,49 +218,8 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] uppercase tracking-widest text-white/25 pl-1">Lead Type</label>
-                <div className="flex gap-1">
-                  {MODES.map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setMode(m)}
-                      className={`h-10 px-3 rounded-xl text-sm font-medium transition-all ${
-                        mode === m
-                          ? "bg-purple-500/20 border border-purple-500/30 text-purple-300"
-                          : "bg-white/[0.03] border border-white/[0.06] text-white/30 hover:text-white/50"
-                      }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {mode === "Social" && (
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] uppercase tracking-widest text-white/25 pl-1">Social Platform</label>
-                  <div className="flex gap-1">
-                    {SOCIAL_PLATFORMS.map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setSocialPlatform(p)}
-                        className={`h-10 px-3 rounded-xl text-sm font-medium transition-all ${
-                          socialPlatform === p
-                            ? "bg-blue-500/20 border border-blue-500/30 text-blue-300"
-                            : "bg-white/[0.03] border border-white/[0.06] text-white/30 hover:text-white/50"
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-1">
+              {/* Min Score */}
+              <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] uppercase tracking-widest text-white/25 pl-1">Min Score</label>
                 <div className="flex gap-1">
                   {MIN_QUALITY_OPTIONS.map((q) => (
@@ -245,6 +236,40 @@ export function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
                       {q}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Sources — multi-select */}
+              <div className="flex flex-col gap-1.5 w-full">
+                <label className="text-[10px] uppercase tracking-widest text-white/25 pl-1">
+                  Sources <span className="text-white/15">— select multiple</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {availableSources.map((source) => {
+                    const isSelected = selectedSources.includes(source.key);
+                    return (
+                      <button
+                        key={source.key}
+                        type="button"
+                        onClick={() => toggleSource(source.key)}
+                        className={`h-10 px-3.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
+                          isSelected
+                            ? "bg-purple-500/20 border border-purple-500/30 text-purple-300"
+                            : "bg-white/[0.03] border border-white/[0.06] text-white/30 hover:text-white/50"
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                          isSelected
+                            ? "bg-purple-500 border-purple-500"
+                            : "border-white/20 bg-transparent"
+                        }`}>
+                          {isSelected && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                        <span>{source.label}</span>
+                        <span className="text-[10px] text-white/20 hidden sm:inline">{source.desc}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

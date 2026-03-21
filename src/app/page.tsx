@@ -84,8 +84,7 @@ export default function Home() {
     query: string,
     industry?: string,
     limit?: number,
-    mode?: string,
-    socialPlatform?: string,
+    sources?: string[],
     minQuality?: number,
     offset?: number
   ) => {
@@ -112,8 +111,7 @@ export default function Home() {
           industry,
           limit: limit || 10,
           offset: offset || 0,
-          mode,
-          socialPlatform,
+          sources: sources || ["web", "social"],
           minQuality,
         }),
       });
@@ -147,7 +145,7 @@ export default function Home() {
 
   const handleLoadMore = () => {
     if (nextOffset !== null && lastQuery) {
-      handleSearch(lastQuery, lastIndustry, lastLimit, undefined, undefined, undefined, nextOffset);
+      handleSearch(lastQuery, lastIndustry, lastLimit, undefined, undefined, nextOffset);
     }
   };
 
