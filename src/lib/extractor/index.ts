@@ -141,8 +141,8 @@ ${text}`;
 }
 
 export function createExtractor(): LLMProvider {
-  const provider = process.env.LLM_PROVIDER || "openai";
-  const model = process.env.LLM_MODEL || "gpt-4o-mini";
+  const provider = (process.env.LLM_PROVIDER || "openai").trim();
+  const model = (process.env.LLM_MODEL || "gpt-4o-mini").trim();
 
   if (provider === "ollama") {
     const baseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
