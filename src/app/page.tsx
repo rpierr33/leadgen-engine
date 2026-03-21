@@ -179,6 +179,21 @@ export default function Home() {
     fetchJobs();
   };
 
+  const handleDeleteJob = async (jobId: string) => {
+    try {
+      await fetch(`/api/leads/clear?jobId=${jobId}`, { method: "DELETE" });
+    } catch {
+      // silent
+    }
+    if (activeJobId === jobId) {
+      setLeads([]);
+      setActiveJobId(null);
+      setNextOffset(null);
+      setTotalUrlsFound(0);
+    }
+    fetchJobs();
+  };
+
   const handleExport = () => {
     const params = activeJobId ? `?jobId=${activeJobId}` : "";
     window.open(`/api/leads/export${params}`, "_blank");
@@ -423,6 +438,7 @@ export default function Home() {
         <JobHistory
           jobs={jobs}
           onSelectJob={handleSelectJob}
+          onDeleteJob={handleDeleteJob}
           activeJobId={activeJobId}
         />
 

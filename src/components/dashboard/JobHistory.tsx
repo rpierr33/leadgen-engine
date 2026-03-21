@@ -1,6 +1,6 @@
 "use client";
 
-import { History, ChevronRight, Users, CheckCircle2, Loader2, XCircle, Clock } from "lucide-react";
+import { History, ChevronRight, Users, CheckCircle2, Loader2, XCircle, Clock, Trash2 } from "lucide-react";
 
 interface JobHistoryItem {
   id: string;
@@ -14,6 +14,7 @@ interface JobHistoryItem {
 interface JobHistoryProps {
   jobs: JobHistoryItem[];
   onSelectJob: (jobId: string) => void;
+  onDeleteJob: (jobId: string) => void;
   activeJobId?: string | null;
 }
 
@@ -25,7 +26,7 @@ const statusIcons: Record<string, { icon: typeof Clock; color: string }> = {
   CANCELLED: { icon: XCircle, color: "text-white/20" },
 };
 
-export function JobHistory({ jobs, onSelectJob, activeJobId }: JobHistoryProps) {
+export function JobHistory({ jobs, onSelectJob, onDeleteJob, activeJobId }: JobHistoryProps) {
   if (jobs.length === 0) return null;
 
   return (
@@ -43,44 +44,57 @@ export function JobHistory({ jobs, onSelectJob, activeJobId }: JobHistoryProps) 
           const isActive = activeJobId === job.id;
 
           return (
-            <button
+            <div
               key={job.id}
-              onClick={() => onSelectJob(job.id)}
-              className={`w-full flex items-center gap-4 px-6 py-4 text-left transition-all duration-200 hover:bg-white/[0.02] group ${
+              className={`flex items-center gap-4 px-6 py-4 transition-all duration-200 hover:bg-white/[0.02] group ${
                 isActive ? "bg-white/[0.03] border-l-2 border-purple-500" : ""
               }`}
             >
-              <div className={`p-1.5 rounded-lg bg-white/[0.03] ${config.color}`}>
-                <Icon className={`h-3.5 w-3.5 ${job.status === "RUNNING" ? "animate-spin" : ""}`} />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white/80 truncate">
-                  {job.query}
-                </p>
-                <div className="flex items-center gap-3 mt-0.5">
-                  {job.industry && (
-                    <span className="text-xs text-white/20">{job.industry}</span>
-                  )}
-                  <span className="text-xs text-white/15">
-                    {new Date(job.createdAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
+              <button
+                onClick={() => onSelectJob(job.id)}
+                className="flex items-center gap-4 flex-1 min-w-0 text-left"
+              >
+                <div className={`p-1.5 rounded-lg bg-white/[0.03] ${config.color}`}>
+                  <Icon className={`h-3.5 w-3.5 ${job.status === "RUNNING" ? "animate-spin" : ""}`} />
                 </div>
-              </div>
 
-              <div className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white/80 truncate">
+                    {job.query}
+                  </p>
+                  <div className="flex items-center gap-3 mt-0.5">
+                    {job.industry && (
+                      <span className="text-xs text-white/20">{job.industry}</span>
+                    )}
+                    <span className="text-xs text-white/15">
+                      {new Date(job.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-1.5 text-xs text-white/30">
                   <Users className="h-3 w-3" />
                   {job.leadsCount}
                 </div>
                 <ChevronRight className="h-4 w-4 text-white/10 group-hover:text-white/30 transition-colors" />
-              </div>
-            </button>
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteJob(job.id);
+                }}
+                className="p-1.5 rounded-lg text-white/10 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                title="Delete job"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           );
         })}
       </div>
