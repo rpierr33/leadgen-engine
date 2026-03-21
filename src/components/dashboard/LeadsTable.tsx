@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ExternalLink,
   Mail,
+  Phone,
   Search,
   Linkedin,
   User,
@@ -20,6 +21,7 @@ interface Lead {
   name: string;
   role: string | null;
   email: string | null;
+  phone: string | null;
   linkedin: string | null;
   company: string;
   domain?: string;
@@ -281,7 +283,7 @@ export function LeadsTable({ leads, jobId }: LeadsTableProps) {
                     {group.contacts.map((contact) => (
                       <div
                         key={contact.id}
-                        className="grid grid-cols-[1fr_1fr_1fr_80px] px-6 py-2.5 pl-20 items-center border-b border-white/[0.01] last:border-0 hover:bg-white/[0.01]"
+                        className="grid grid-cols-[1fr_1fr_1fr_1fr_80px] px-6 py-2.5 pl-20 items-center border-b border-white/[0.01] last:border-0 hover:bg-white/[0.01]"
                       >
                         {/* Name + Role */}
                         <div className="flex items-center gap-2 min-w-0">
@@ -299,6 +301,15 @@ export function LeadsTable({ leads, jobId }: LeadsTableProps) {
                           {contact.email ? (
                             <a href={`mailto:${contact.email}`} className="flex items-center gap-1 text-[11px] text-blue-400/70 hover:text-blue-300 truncate">
                               <Mail className="h-3 w-3 shrink-0" />{contact.email}
+                            </a>
+                          ) : <span className="text-[11px] text-white/15">—</span>}
+                        </div>
+
+                        {/* Phone */}
+                        <div className="min-w-0">
+                          {contact.phone ? (
+                            <a href={`tel:${contact.phone}`} className="flex items-center gap-1 text-[11px] text-white/50 hover:text-white/70 truncate">
+                              <Phone className="h-3 w-3 shrink-0" />{contact.phone}
                             </a>
                           ) : <span className="text-[11px] text-white/15">—</span>}
                         </div>

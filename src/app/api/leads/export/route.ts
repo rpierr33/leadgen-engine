@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
       Name: lead.name,
       Role: lead.role || "",
       Email: lead.email || "",
+      Phone: lead.phone || "",
       LinkedIn: lead.linkedin || "",
       Company: lead.company,
       Score: lead.score ?? "",

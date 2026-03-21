@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createSearchProvider, buildSearchQueries } from "@/lib/search";
-import { fetchScrapeUrl } from "@/lib/scraper/fetch-scraper";
+import { fetchScrapeUrl, scrapeCompanyDeep } from "@/lib/scraper/fetch-scraper";
 import { createExtractor } from "@/lib/extractor";
 import { enrichLead } from "@/lib/enrichment";
 
@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
       name: string;
       role: string | null;
       email: string | null;
+      phone: string | null;
       linkedin: string | null;
       company: string;
       domain: string;
@@ -136,11 +137,11 @@ export async function POST(request: NextRequest) {
 
     // Scrape all URLs in parallel batches of 3
     const BATCH_SIZE = 3;
-    const scrapeResults: Array<{ url: string; text: string; statusCode: number; blocked: boolean; error?: string }> = [];
+    const scrapeResults: Array<{ url: string; text: string; emails: string[]; phones: string[]; statusCode: number; blocked: boolean; error?: string }> = [];
 
     for (let i = 0; i < urlsToProcess.length; i += BATCH_SIZE) {
       const batch = urlsToProcess.slice(i, i + BATCH_SIZE);
-      const results = await Promise.all(batch.map((u) => fetchScrapeUrl(u)));
+      const results = await Promise.all(batch.map((u) => scrapeCompanyDeep(u)));
 
       // Log traces for this batch
       await Promise.all(
@@ -182,10 +183,29 @@ export async function POST(request: NextRequest) {
       if (seenDomains.has(domain)) continue;
 
       try {
-        const extractedLeads = await extractor.extract(scrapeResult.text, scrapeResult.url);
+        // Append scraped emails and phones to the text sent to the extractor
+        let textForExtraction = scrapeResult.text;
+        if (scrapeResult.emails?.length) textForExtraction += "\n\nEmails found on site: " + scrapeResult.emails.join(", ");
+        if (scrapeResult.phones?.length) textForExtraction += "\n\nPhone numbers found on site: " + scrapeResult.phones.join(", ");
+
+        const extractedLeads = await extractor.extract(textForExtraction, scrapeResult.url);
         console.log(`[Generate] Extracted ${extractedLeads.length} leads from ${scrapeResult.url.slice(0, 60)}`);
 
-        const validLeads = extractedLeads.filter((l) => l.name && l.company);
+        // Cap contacts per company at 3 — rank by decision-maker titles, keep top 3
+        const dmTitlesRank = ["ceo", "founder", "owner", "president", "director", "vp", "partner", "managing", "principal", "chairman", "chief"];
+        const midTitlesRank = ["manager", "head", "lead", "senior", "supervisor", "coordinator"];
+        function roleRank(role: string | null): number {
+          const r = (role || "").toLowerCase();
+          if (dmTitlesRank.some(t => r.includes(t))) return 3;
+          if (midTitlesRank.some(t => r.includes(t))) return 2;
+          if (role) return 1;
+          return 0;
+        }
+
+        const validLeads = extractedLeads
+          .filter((l) => l.name && l.company)
+          .sort((a, b) => roleRank(b.role) - roleRank(a.role))
+          .slice(0, 3);
         if (validLeads.length === 0) continue;
 
         seenDomains.add(domain);
@@ -212,6 +232,7 @@ export async function POST(request: NextRequest) {
               name: lead.name,
               role: lead.role,
               email: enrichedEmail,
+              phone: lead.phone || null,
               linkedin: lead.linkedin,
               company: lead.company,
               sourceUrl: scrapeResult.url,
@@ -227,6 +248,7 @@ export async function POST(request: NextRequest) {
             name: savedLead.name,
             role: savedLead.role,
             email: savedLead.email,
+            phone: savedLead.phone,
             linkedin: savedLead.linkedin,
             company: savedLead.company,
             domain,

@@ -40,6 +40,7 @@ model Lead {
   name        String
   role        String?
   email       String?
+  phone       String?
   linkedin    String?
   company     String
   sourceUrl   String
